@@ -1,0 +1,28 @@
+/*
+ * GD32F503V_EVAL project linker configuration.
+ * Memory layout matches the Keil project:
+ *   Flash: 0x08000000 - 0x080FFFFF (1 MB)
+ *   SRAM : 0x20000000 - 0x2001FFFF (128 KB)
+ */
+
+define symbol __ICFEDIT_region_ROM_start__ = 0x08000000;
+define symbol __ICFEDIT_region_ROM_end__   = 0x080FFFFF;
+define symbol __ICFEDIT_region_RAM_start__ = 0x20000000;
+define symbol __ICFEDIT_region_RAM_end__   = 0x2001FFFF;
+
+define symbol __ICFEDIT_size_cstack__ = 0x2000;
+define symbol __ICFEDIT_size_heap__   = 0x2000;
+
+define memory mem with size = 4G;
+define region ROM_region = mem:[from __ICFEDIT_region_ROM_start__ to __ICFEDIT_region_ROM_end__];
+define region RAM_region = mem:[from __ICFEDIT_region_RAM_start__ to __ICFEDIT_region_RAM_end__];
+
+define block CSTACK with alignment = 8, size = __ICFEDIT_size_cstack__ { };
+define block HEAP   with alignment = 8, size = __ICFEDIT_size_heap__   { };
+
+initialize by copy with packing = none { readwrite };
+do not initialize  { section .noinit };
+
+place at start of ROM_region { section .intvec };
+place in ROM_region { readonly };
+place in RAM_region { readwrite, block CSTACK, block HEAP };
