@@ -18,7 +18,7 @@
 					<folderInfo id="com.gigadevice.mbs.arm.configuration.debug.1011300137.978169811." name="/" resourcePath="">
 						<toolChain id="com.gigadevice.mbs.arm.toolChain.elf.debug.179784064" name="GD ARM MCU Toolchain" secondaryOutputs="com.gigadevice.mbs.arm.outputType.objcopy.hex;com.gigadevice.mbs.arm.outputType.objcopy.bin;com.gigadevice.mbs.arm.outputType.objdump.list;com.gigadevice.mbs.arm.outputType.size" superClass="com.gigadevice.mbs.arm.toolChain.elf.debug">
 							<option id="com.gigadevice.mbs.arm.option.optimization.messageLength.288152068" name="Message length (-fmessage-length=0)" superClass="com.gigadevice.mbs.arm.option.optimization.messageLength"/>
-							<option id="com.gigadevice.mbs.arm.option.optimization.allOptions.1718037451" name="All options" superClass="com.gigadevice.mbs.arm.option.optimization.allOptions" value="-O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections" valueType="string"/>
+							<option id="com.gigadevice.mbs.arm.option.optimization.allOptions.1718037451" name="All options" superClass="com.gigadevice.mbs.arm.option.optimization.allOptions" value=" -g3" valueType="string"/>
 							<option id="com.gigadevice.mbs.arm.option.optimization.signedChar.1238610640" name="Plain char is signed (-fsigned-char)" superClass="com.gigadevice.mbs.arm.option.optimization.signedChar"/>
 							<option id="com.gigadevice.mbs.arm.option.optimization.functionSections.263595892" name="Function sections (-ffunction-sections)" superClass="com.gigadevice.mbs.arm.option.optimization.functionSections"/>
 							<option id="com.gigadevice.mbs.arm.option.optimization.dataSections.104071258" name="Data sections (-fdata-sections)" superClass="com.gigadevice.mbs.arm.option.optimization.dataSections"/>
@@ -37,6 +37,7 @@
 							<option id="com.gigadevice.mbs.arm.option.toolChain.size.1789178519" name="%option.base.toolChain.size" superClass="com.gigadevice.mbs.arm.option.toolChain.size" value="arm-none-eabi-size" valueType="string"/>
 							<option id="com.gigadevice.mbs.arm.option.targetProcessor.fpu.abi.1046961588" name="Float ABI" superClass="com.gigadevice.mbs.arm.option.targetProcessor.fpu.abi" value="com.gigadevice.mbs.arm.option.targetProcessor.fpu.abi.hard" valueType="enumerated"/>
 							<option id="com.gigadevice.mbs.arm.option.targetProcessor.fpu.unit.1115546043" name="FPU Type" superClass="com.gigadevice.mbs.arm.option.targetProcessor.fpu.unit" value="com.gigadevice.mbs.arm.option.targetProcessor.fpu.unit.fpv5spd16" valueType="enumerated"/>
+							<option id="com.gigadevice.mbs.arm.option.optimization.level.703616268" superClass="com.gigadevice.mbs.arm.option.optimization.level" value="com.gigadevice.mbs.option.toolSettings.optimization.level.fast" valueType="enumerated"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.gigadevice.mbs.arm.targetPlatform.2054850244" isAbstract="false" osList="all" superClass="com.gigadevice.mbs.arm.targetPlatform"/>
 							<builder buildPath="${workspace_loc:/${ProjName}}/GD32F503V_EVAL" id="com.gigadevice.mbs.arm.builder.1543810631" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="com.gigadevice.mbs.arm.builder"/>
 							<tool id="com.gigadevice.mbs.arm.tool.CCompiler.449769803" name="GD ARM MCU C Compiler" superClass="com.gigadevice.mbs.arm.tool.CCompiler">
@@ -55,7 +56,6 @@
 									<listOptionValue builtIn="false" value="GD32F503"/>
 									<listOptionValue builtIn="false" value="FW_DEBUG_ERR_REPORT"/>
 									<listOptionValue builtIn="false" value="GD32F5xx_FlexColor"/>
-									<listOptionValue builtIn="false" value="LVGL_API_VERSION=8"/>
 									<listOptionValue builtIn="false" value="GD_ECLIPSE_GCC"/>
 								</option>
 								<inputType id="com.gigadevice.mbs.arm.inputType.CCompiler.1186270158" superClass="com.gigadevice.mbs.arm.inputType.CCompiler"/>
@@ -81,7 +81,6 @@
 									<listOptionValue builtIn="false" value="GD32F503"/>
 									<listOptionValue builtIn="false" value="FW_DEBUG_ERR_REPORT"/>
 									<listOptionValue builtIn="false" value="GD32F5xx_FlexColor"/>
-									<listOptionValue builtIn="false" value="LVGL_API_VERSION=8"/>
 									<listOptionValue builtIn="false" value="GD_ECLIPSE_GCC"/>
 								</option>
 								<inputType id="com.gigadevice.mbs.arm.inputType.assembler.2021309761" superClass="com.gigadevice.mbs.arm.inputType.assembler"/>
