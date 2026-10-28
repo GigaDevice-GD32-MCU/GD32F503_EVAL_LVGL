@@ -73,6 +73,14 @@ int main(void)
     lv_port_indev_init();
     lv_demo_widgets();
     while(1) {
-        lv_timer_handler();
+        /* run LVGL, then sleep until the next LVGL timer is due (SysTick wakes the core every 1 ms) */
+        uint32_t idle_ms = lv_timer_handler();
+        if(idle_ms > LV_DEF_REFR_PERIOD) {
+            idle_ms = LV_DEF_REFR_PERIOD;
+        }
+        uint32_t idle_start = lv_tick_get();
+        while(lv_tick_elaps(idle_start) < idle_ms) {
+            __WFI();
+        }
     }
 }
