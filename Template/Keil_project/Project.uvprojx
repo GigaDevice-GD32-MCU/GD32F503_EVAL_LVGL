@@ -1395,11 +1395,6 @@
               <FilePath>..\..\Utilities\lvgl\lvgl\src\font\lv_font.c</FilePath>
             </File>
             <File>
-              <FileName>lv_font_dejavu_16_persian_hebrew.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\Utilities\lvgl\lvgl\src\font\lv_font_dejavu_16_persian_hebrew.c</FilePath>
-            </File>
-            <File>
               <FileName>lv_font_fmt_txt.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Utilities\lvgl\lvgl\src\font\lv_font_fmt_txt.c</FilePath>
@@ -1523,11 +1518,6 @@
               <FileName>lv_font_montserrat_8.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Utilities\lvgl\lvgl\src\font\lv_font_montserrat_8.c</FilePath>
-            </File>
-            <File>
-              <FileName>lv_font_simsun_16_cjk.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\Utilities\lvgl\lvgl\src\font\lv_font_simsun_16_cjk.c</FilePath>
             </File>
             <File>
               <FileName>lv_font_unscii_16.c</FileName>
