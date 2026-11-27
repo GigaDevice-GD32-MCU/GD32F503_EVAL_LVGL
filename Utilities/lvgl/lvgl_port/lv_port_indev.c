@@ -1,10 +1,27 @@
+/**
+ * @file lv_port_indev_template.c
+ *
+ */
+
+/*Copy this file as "lv_port_indev.c" and set this value to "1" to enable content*/
+#if 1
+
+/*********************
+ *      INCLUDES
+ *********************/
 #include "lv_port_indev.h"
 #include "lv_port_disp.h"
-#include "../../bsp_drive/touch_panel.h"
+#include "touch_panel.h"
 
+/*********************
+ *      DEFINES
+ *********************/
 #ifndef TOUCH_PROBE_DEBUG
-#define TOUCH_PROBE_DEBUG 0
+    #define TOUCH_PROBE_DEBUG   0
 #endif
+
+/* v8: LV_INDEV_DEF_READ_PERIOD = 30 ms */
+#define TOUCH_READ_PERIOD   30
 
 enum {
     TOUCH_X_MIN = 360,
@@ -15,24 +32,34 @@ enum {
     TOUCH_Y_OFFSET = 6
 };
 
-static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
+/**********************
+ *      TYPEDEFS
+ **********************/
+
+/**********************
+ *  STATIC PROTOTYPES
+ **********************/
+
+static void touchpad_init(void);
+static void touchpad_read(lv_indev_t * indev, lv_indev_data_t * data);
 static bool touchpad_is_pressed(void);
-static bool touchpad_get_xy(int32_t *x, int32_t *y);
-static void touchpad_irq_idle_init(void);
-static bool touchpad_get_raw_ad(uint16_t *ad_x, uint16_t *ad_y);
+static bool touchpad_get_xy(int32_t * x, int32_t * y);
+static bool touchpad_get_raw_ad(uint16_t * ad_x, uint16_t * ad_y);
 static int32_t touchpad_map_ad(uint16_t ad, uint16_t ad_min, uint16_t ad_max, int32_t screen_size);
 static int32_t touchpad_map_portrait_y(uint16_t ad_y);
 #if TOUCH_PROBE_DEBUG
 static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y);
 #endif
 
-static lv_indev_drv_t indev_touchpad_drv;
-static lv_indev_t *indev_touchpad = NULL;
+/**********************
+ *  STATIC VARIABLES
+ **********************/
+lv_indev_t * indev_touchpad;
+
 static FlagStatus touch_irq_idle = SET;
-static bool touch_irq_idle_inited = false;
 #if TOUCH_PROBE_DEBUG
-static lv_obj_t *touch_probe_label = NULL;
-static lv_obj_t *touch_probe_cursor = NULL;
+static lv_obj_t * touch_probe_label = NULL;
+static lv_obj_t * touch_probe_cursor = NULL;
 static uint16_t touch_dbg_ad_x = 0;
 static uint16_t touch_dbg_ad_y = 0;
 static uint16_t touch_dbg_last_ad_x = 0;
@@ -42,56 +69,98 @@ static int32_t touch_dbg_last_y = 0;
 static uint8_t touch_dbg_src = 0;
 #endif
 
+/**********************
+ *      MACROS
+ **********************/
+
+/**********************
+ *   GLOBAL FUNCTIONS
+ **********************/
+
 void lv_port_indev_init(void)
 {
-    touchpad_irq_idle_init();
+    /*------------------
+     * Touchpad
+     * -----------------*/
 
-    lv_indev_drv_init(&indev_touchpad_drv);
-    indev_touchpad_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_touchpad_drv.read_cb = touchpad_read;
-    indev_touchpad = lv_indev_drv_register(&indev_touchpad_drv);
-    (void)indev_touchpad;
+    /*Initialize your touchpad if you have*/
+    touchpad_init();
+
+    /*Register a touchpad input device*/
+    indev_touchpad = lv_indev_create();
+    lv_indev_set_type(indev_touchpad, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev_touchpad, touchpad_read);
+
+    /*Keep the v8 input read period*/
+    lv_timer_set_period(lv_indev_get_read_timer(indev_touchpad), TOUCH_READ_PERIOD);
 }
 
-static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+/**********************
+ *   STATIC FUNCTIONS
+ **********************/
+
+/*------------------
+ * Touchpad
+ * -----------------*/
+
+/*Initialize your touchpad: detect the idle level of the PEN IRQ pin*/
+static void touchpad_init(void)
+{
+    uint8_t i;
+    uint8_t set_cnt = 0;
+    uint8_t reset_cnt = 0;
+
+    for(i = 0; i < 16; i++) {
+        if(touch_pen_irq() == SET) {
+            set_cnt++;
+        }
+        else {
+            reset_cnt++;
+        }
+    }
+
+    touch_irq_idle = (set_cnt >= reset_cnt) ? SET : RESET;
+    (void)touch_irq_idle;
+}
+
+/*Will be called by the library to read the touchpad*/
+static void touchpad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 {
     static int32_t last_x = 0;
     static int32_t last_y = 0;
-    bool got_xy;
 
     (void)indev_drv;
 
-    got_xy = touchpad_get_xy(&last_x, &last_y);
-
-    if(got_xy) {
+    /*Save the pressed coordinates and the state*/
+    if(touchpad_get_xy(&last_x, &last_y)) {
         data->state = LV_INDEV_STATE_PRESSED;
-        data->point.x = last_x;
-        data->point.y = last_y;
-    } else {
-        data->state = LV_INDEV_STATE_RELEASED;
-        last_x = 0;
-        last_y = 0;
-        data->point.x = 0;
-        data->point.y = 0;
     }
+    else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+
+    /*Set the last pressed coordinates*/
+    data->point.x = last_x;
+    data->point.y = last_y;
+
 #if TOUCH_PROBE_DEBUG
     touchpad_probe_update(data->state, last_x, last_y);
 #endif
 }
 
+/*Return true is the touchpad is pressed*/
 static bool touchpad_is_pressed(void)
 {
     return (touch_pen_irq() == RESET);
 }
 
-static bool touchpad_get_xy(int32_t *x, int32_t *y)
+/*Get the x and y coordinates if the touchpad is pressed*/
+static bool touchpad_get_xy(int32_t * x, int32_t * y)
 {
     uint8_t retry;
     uint16_t ad_x = 0;
     uint16_t ad_y = 0;
     bool got_ad = false;
-    int32_t tp_x;
-    int32_t tp_y;
     int32_t lv_x;
     int32_t lv_y;
 
@@ -132,11 +201,11 @@ static bool touchpad_get_xy(int32_t *x, int32_t *y)
 
     if(!got_ad) {
         got_ad = touchpad_get_raw_ad(&ad_x, &ad_y);
-        if(got_ad) {
 #if TOUCH_PROBE_DEBUG
+        if(got_ad) {
             touch_dbg_src = 2U;
-#endif
         }
+#endif
     }
 
     if(!got_ad) {
@@ -153,28 +222,28 @@ static bool touchpad_get_xy(int32_t *x, int32_t *y)
     touch_dbg_ad_y = ad_y;
 #endif
 
-    tp_x = touchpad_map_ad(ad_x, TOUCH_X_MIN, TOUCH_X_MAX, XSIZE_PHYS);
-    tp_y = touchpad_map_portrait_y(ad_y);
+    lv_x = touchpad_map_ad(ad_x, TOUCH_X_MIN, TOUCH_X_MAX, MY_DISP_HOR_RES);
+    lv_y = touchpad_map_portrait_y(ad_y);
 
-    lv_x = tp_x;
-    lv_y = tp_y;
-    lv_x = XSIZE_PHYS - 1 - lv_x;
-    lv_y = YSIZE_PHYS - 1 - lv_y - TOUCH_Y_OFFSET;
+    lv_x = MY_DISP_HOR_RES - 1 - lv_x;
+    lv_y = MY_DISP_VER_RES - 1 - lv_y - TOUCH_Y_OFFSET;
 
     if(lv_x < 0) {
         lv_x = 0;
-    } else if(lv_x >= XSIZE_PHYS) {
-        lv_x = XSIZE_PHYS - 1;
+    }
+    else if(lv_x >= MY_DISP_HOR_RES) {
+        lv_x = MY_DISP_HOR_RES - 1;
     }
 
     if(lv_y < 0) {
         lv_y = 0;
-    } else if(lv_y >= YSIZE_PHYS) {
-        lv_y = YSIZE_PHYS - 1;
+    }
+    else if(lv_y >= MY_DISP_VER_RES) {
+        lv_y = MY_DISP_VER_RES - 1;
     }
 
-    *x = lv_x;
-    *y = lv_y;
+    (*x) = lv_x;
+    (*y) = lv_y;
 #if TOUCH_PROBE_DEBUG
     touch_dbg_last_ad_x = ad_x;
     touch_dbg_last_ad_y = ad_y;
@@ -184,10 +253,9 @@ static bool touchpad_get_xy(int32_t *x, int32_t *y)
     return true;
 }
 
+/*Linear map of an AD value to [0, screen_size - 1]*/
 static int32_t touchpad_map_ad(uint16_t ad, uint16_t ad_min, uint16_t ad_max, int32_t screen_size)
 {
-    int32_t value;
-
     if(ad <= ad_min) {
         return 0;
     }
@@ -196,22 +264,21 @@ static int32_t touchpad_map_ad(uint16_t ad, uint16_t ad_min, uint16_t ad_max, in
         return screen_size - 1;
     }
 
-    value = (int32_t)(((uint32_t)(ad - ad_min) * (uint32_t)(screen_size - 1)) /
-                      (uint32_t)(ad_max - ad_min));
-
-    return value;
+    return (int32_t)(((uint32_t)(ad - ad_min) * (uint32_t)(screen_size - 1)) /
+                     (uint32_t)(ad_max - ad_min));
 }
 
+/*Two-segment Y mapping (portrait) calibrated with TOUCH_Y_MID*/
 static int32_t touchpad_map_portrait_y(uint16_t ad_y)
 {
-    int32_t middle_y = (YSIZE_PHYS / 2) - 1;
+    int32_t middle_y = (MY_DISP_VER_RES / 2) - 1;
 
     if(ad_y <= TOUCH_Y_MIN) {
         return 0;
     }
 
     if(ad_y >= TOUCH_Y_MAX) {
-        return YSIZE_PHYS - 1;
+        return MY_DISP_VER_RES - 1;
     }
 
     if(ad_y <= TOUCH_Y_MID) {
@@ -219,29 +286,11 @@ static int32_t touchpad_map_portrait_y(uint16_t ad_y)
     }
 
     return middle_y + touchpad_map_ad(ad_y, TOUCH_Y_MID, TOUCH_Y_MAX,
-                                      YSIZE_PHYS - middle_y);
+                                      MY_DISP_VER_RES - middle_y);
 }
 
-static void touchpad_irq_idle_init(void)
-{
-    uint8_t i;
-    uint8_t set_cnt = 0;
-    uint8_t reset_cnt = 0;
-
-    for(i = 0; i < 16; i++) {
-        if(touch_pen_irq() == SET) {
-            set_cnt++;
-        } else {
-            reset_cnt++;
-        }
-    }
-
-    touch_irq_idle = (set_cnt >= reset_cnt) ? SET : RESET;
-    touch_irq_idle_inited = true;
-    (void)touch_irq_idle_inited;
-}
-
-static bool touchpad_get_raw_ad(uint16_t *ad_x, uint16_t *ad_y)
+/*Fallback: read the raw AD values directly over SPI*/
+static bool touchpad_get_raw_ad(uint16_t * ad_x, uint16_t * ad_y)
 {
     uint8_t retry;
     uint16_t x1;
@@ -297,12 +346,13 @@ static bool touchpad_get_raw_ad(uint16_t *ad_x, uint16_t *ad_y)
 }
 
 #if TOUCH_PROBE_DEBUG
+/*On-screen touch debug overlay: label with AD/XY info and a cursor dot*/
 static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y)
 {
     static uint16_t update_div = 0;
     char src_ch;
     FlagStatus irq_now;
-    lv_obj_t *scr;
+    lv_obj_t * scr;
 
     update_div++;
     if((update_div % 3U) != 0U) {
@@ -310,7 +360,7 @@ static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y)
     }
 
     if(touch_probe_label == NULL) {
-        scr = lv_scr_act();
+        scr = lv_screen_active();
         touch_probe_label = lv_label_create(scr);
         lv_obj_set_style_bg_opa(touch_probe_label, LV_OPA_70, 0);
         lv_obj_set_style_bg_color(touch_probe_label, lv_color_hex(0x000000), 0);
@@ -324,7 +374,7 @@ static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y)
     }
 
     if(touch_probe_cursor == NULL) {
-        scr = lv_scr_act();
+        scr = lv_screen_active();
         touch_probe_cursor = lv_obj_create(scr);
         lv_obj_set_size(touch_probe_cursor, 9, 9);
         lv_obj_set_style_radius(touch_probe_cursor, LV_RADIUS_CIRCLE, 0);
@@ -332,16 +382,17 @@ static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y)
         lv_obj_set_style_bg_color(touch_probe_cursor, lv_color_hex(0xFF0000), 0);
         lv_obj_set_style_border_width(touch_probe_cursor, 1, 0);
         lv_obj_set_style_border_color(touch_probe_cursor, lv_color_hex(0xFFFFFF), 0);
-        lv_obj_clear_flag(touch_probe_cursor, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_flag(touch_probe_cursor, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_flag(touch_probe_cursor, LV_OBJ_FLAG_IGNORE_LAYOUT);
         lv_obj_move_foreground(touch_probe_cursor);
     }
 
     if(state == LV_INDEV_STATE_PRESSED) {
-        lv_obj_clear_flag(touch_probe_cursor, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(touch_probe_cursor, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_pos(touch_probe_cursor, x - 4, y - 4);
         lv_obj_move_foreground(touch_probe_cursor);
-    } else {
+    }
+    else {
         lv_obj_add_flag(touch_probe_cursor, LV_OBJ_FLAG_HIDDEN);
     }
 
@@ -363,4 +414,10 @@ static void touchpad_probe_update(lv_indev_state_t state, int32_t x, int32_t y)
                           (long)touch_dbg_last_x,
                           (long)touch_dbg_last_y);
 }
+#endif /*TOUCH_PROBE_DEBUG*/
+
+#else /*Enable this file at the top*/
+
+/*This dummy typedef exists purely to silence -Wpedantic.*/
+typedef int keep_pedantic_happy;
 #endif
